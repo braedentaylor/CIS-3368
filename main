@@ -1,0 +1,116 @@
+
+from contact import contact
+import datetime
+from datetime import date
+import mysql.connector
+from mysql.connector import Error
+
+#database connection messages anf functions, used code example from in class #3 2/6
+
+def create_connection(host_name, user_name, user_password, db_name):
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host=host_name,
+            user=user_name,
+            passwd=user_password,
+            database=db_name
+        )
+        print("Connection to MySQL DB successful")
+    except Error as e:
+        print(f"The error '{e}' occurred")
+
+    return connection
+
+def execute_query(connection, query):
+    cursor = connection.cursor()
+    try:
+        cursor.execute(query)
+        connection.commit()
+        print("Query executed successfully")
+    except Error as e:
+        print(f"The error '{e}' occurred")
+
+def execute_read_query(connection, query):
+    cursor = connection.cursor()
+    result = None
+    try:
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
+    except Error as e:
+        print(f"The error '{e}' occurred")
+
+
+#Connection to my database
+
+connection = create_connection("database-homework1.cnmb0sa1zusc.us-east-2.rds.amazonaws.com", "admin", "3368admin!", "dbhw1")
+
+#create a menu that prompts the user
+
+menu = """\nMENU
+a - Add contact
+d - Remove contact
+u - Update contact details
+b - Output all contacts in alphabetical order
+c - Output all contacts by creation date
+o - Output all contacts
+q - Quit \n"""
+
+ans = True
+
+#while loop that continues to prompt user until selecting q for quit
+
+while ans:
+    print(menu)
+    ans = input('Choose an option:')
+    if ans=="a":
+      # Adding the user contact and inserting it into the database
+      print("\n Add contact")
+      add_contactDetails = input("Enter contact name to add: ")
+      query_add_contact = "insert into contacts (contactDetails, creationDate) values ('%s', curdate());" % add_contactDetails
+      execute_query(connection, query_add_contact)
+    elif ans=="d":
+      # Prompting user to input the contact that they would like to remove 
+      print("\n Remove contact")
+      remove_contactDetails = input("Enter contact name to remove: ")
+      query_remove_contact = "delete from contacts where contactDetails = '%s';" % remove_contactDetails
+      execute_query(connection, query_remove_contact)
+    elif ans=="u":
+      #Prompting the select an existing contact and then provide an update to that contact
+      print("\n Update contact details")
+      old_contact = input("Enter contact name to update: ")
+      new_contact = input("Enter new contact details: ")
+      query_update = "UPDATE contacts SET contactDetails = '%s' WHERE contactDetails = '%s';" % (new_contact, old_contact)
+      execute_query(connection, query_update)
+    elif ans=="b":
+      #Output all contacts in alphabetical order using SQL select statment and order by
+      print("\n Output all contacts in alphabetical order")
+      query_select_order_by_alphabet = "select contactDetails from contacts order by contactDetails;"
+      contact_raw = execute_read_query(connection, query_select_order_by_alphabet)
+      contact = [i[0] for i in contact_raw]
+      for row in contact:
+        print(row)
+    elif ans=="c":
+      #Output all contacts in order by creation date using SQL select statment and order by CreationDate
+      print("\n Output all contacts by creation date")
+      query_select_order_by_creation_date = "select contactDetails, creationDate from contacts order by creationDate;"
+      contact_raw = execute_read_query(connection, query_select_order_by_creation_date)
+      for row in contact_raw:
+        print(row[0],'-', row[1])
+    elif ans=="o":
+      #Output all contacts
+      print("\n Output all contacts")
+      query_select = "select contactDetails from contacts;"
+      contact_raw = execute_read_query(connection, query_select)
+      contact = [i[0] for i in contact_raw]
+      for row in contact:
+        print(row)
+    elif ans=="q":
+      #End the menu
+      print("\n Quit")
+      ans = None
+    else:
+      #Bad input from user message
+       print("\n Not Valid Choice Try again")
+
